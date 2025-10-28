@@ -46,9 +46,12 @@ export default function GlobePage() {
   };
 
   const handlePokeUser = (userId: string) => {
+    console.log("👆 Clicked on user:", userId);
     if (userId === currentUser?.id) {
+      console.log("❌ Cannot poke yourself");
       return; // Can't poke yourself
     }
+    console.log("📤 Sending chat request to:", userId);
     sendChatRequest(userId);
   };
 

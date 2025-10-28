@@ -124,6 +124,7 @@ export function useWebSocket(currentUser: User | null, options?: UseWebSocketOpt
         break;
 
       case "chat-request":
+        console.log("📨 Received chat request:", message.payload);
         addChatRequest(message.payload as ChatRequest);
         console.log("💬 New chat request from:", message.payload.fromUser?.username);
         break;
@@ -160,8 +161,12 @@ export function useWebSocket(currentUser: User | null, options?: UseWebSocketOpt
 
   const sendChatRequest = useCallback(
     (toUserId: string) => {
-      if (!currentUser) return;
+      if (!currentUser) {
+        console.log("❌ No current user, cannot send chat request");
+        return;
+      }
 
+      console.log("💬 Sending chat request from", currentUser.id, "to", toUserId);
       sendMessage({
         type: "chat-request",
         payload: {
@@ -175,6 +180,7 @@ export function useWebSocket(currentUser: User | null, options?: UseWebSocketOpt
 
   const respondToChatRequest = useCallback(
     (requestId: string, accepted: boolean) => {
+      console.log("📬 Responding to chat request:", requestId, "Accepted:", accepted);
       sendMessage({
         type: "chat-response",
         payload: {

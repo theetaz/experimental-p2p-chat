@@ -39,9 +39,9 @@ export function useWebRTC({ localUserId, remoteUserId, onMessage, sendSignal }: 
       if (event.candidate) {
         sendSignal({
           type: "ice-candidate",
+          toUserId: remoteUserId,
           payload: {
             candidate: event.candidate,
-            toUserId: remoteUserId,
           },
         });
       }
@@ -107,9 +107,9 @@ export function useWebRTC({ localUserId, remoteUserId, onMessage, sendSignal }: 
 
       sendSignal({
         type: "offer",
+        toUserId: remoteUserId,
         payload: {
           offer,
-          toUserId: remoteUserId,
         },
       });
     } catch (error) {
@@ -130,9 +130,9 @@ export function useWebRTC({ localUserId, remoteUserId, onMessage, sendSignal }: 
 
         sendSignal({
           type: "answer",
+          toUserId: remoteUserId,
           payload: {
             answer,
-            toUserId: remoteUserId,
           },
         });
       } catch (error) {

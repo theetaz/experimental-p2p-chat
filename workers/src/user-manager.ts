@@ -204,6 +204,10 @@ export class UserManager extends DurableObject {
   }
 
   private async handleChatRequest(payload: { fromUserId: string; toUserId: string }) {
+    console.log("📬 Handling chat request from", payload.fromUserId, "to", payload.toUserId);
+    console.log("📊 Total sessions:", this.sessions.size);
+    console.log("📋 Session IDs:", Array.from(this.sessions.keys()));
+
     const requestId = crypto.randomUUID();
     const chatRequest: ChatRequest = {
       id: requestId,
@@ -217,6 +221,17 @@ export class UserManager extends DurableObject {
 
     // Send request to the target user
     const fromUser = this.sessions.get(payload.fromUserId)?.user;
+    const toUserExists = this.sessions.has(payload.toUserId);
+
+    console.log("👤 From user:", fromUser?.username);
+    console.log("🎯 Sending to user:", payload.toUserId);
+    console.log("✓ Target user exists:", toUserExists);
+
+    if (!toUserExists) {
+      console.error("❌ Target user not found in sessions!");
+      return;
+    }
+
     this.sendToUser(payload.toUserId, {
       type: "chat-request",
       payload: {
@@ -224,6 +239,8 @@ export class UserManager extends DurableObject {
         fromUser,
       },
     });
+
+    console.log("✅ Chat request sent successfully");
   }
 
   private async handleChatResponse(payload: { requestId: string; accepted: boolean }) {
@@ -271,8 +288,12 @@ export class UserManager extends DurableObject {
 
   private async handleSignaling(data: any) {
     const { toUserId, ...signalingData } = data;
+    console.log("🔀 Handling signaling:", data.type, "to user:", toUserId);
     if (toUserId) {
       this.sendToUser(toUserId, signalingData);
+      console.log("✅ Signaling forwarded successfully");
+    } else {
+      console.error("❌ No toUserId in signaling data!");
     }
   }
 

@@ -26,6 +26,7 @@ function ChatPageContent() {
   const handleOfferRef = useRef<any>(null);
   const handleAnswerRef = useRef<any>(null);
   const handleIceCandidateRef = useRef<any>(null);
+  const hasInitialized = useRef(false);
 
   const peerUser = onlineUsers.find((u) => u.id === peerId);
 
@@ -68,6 +69,9 @@ function ChatPageContent() {
   handleIceCandidateRef.current = handleIceCandidate;
 
   useEffect(() => {
+    // Prevent multiple initializations
+    if (hasInitialized.current) return;
+
     setIsClient(true);
 
     // Restore user from session storage
@@ -84,9 +88,16 @@ function ChatPageContent() {
       return;
     }
 
+    // Mark as initialized
+    hasInitialized.current = true;
+
     // Start WebRTC connection
-    createOffer();
-  }, [setCurrentUser, router, peerId, createOffer]);
+    setTimeout(() => {
+      createOffer();
+    }, 100);
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [peerId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
