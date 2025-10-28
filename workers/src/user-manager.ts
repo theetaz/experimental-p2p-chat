@@ -72,7 +72,10 @@ export class UserManager extends DurableObject {
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
 
+    // Accept the WebSocket connection in the Durable Object
     this.ctx.acceptWebSocket(server);
+
+    console.log("WebSocket connection established");
 
     return new Response(null, {
       status: 101,
@@ -85,9 +88,11 @@ export class UserManager extends DurableObject {
       if (typeof message !== "string") return;
 
       const data = JSON.parse(message);
+      console.log("Received message:", data.type);
 
       switch (data.type) {
         case "join":
+          console.log("User joining:", data.payload.username);
           await this.handleUserJoin(ws, data.payload);
           break;
         case "leave":

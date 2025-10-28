@@ -9,12 +9,13 @@ export interface Env {
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
+    const upgradeHeader = request.headers.get("Upgrade");
 
     // Enable CORS
     const corsHeaders = {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization, Upgrade, Connection",
     };
 
     // Handle CORS preflight
@@ -32,7 +33,12 @@ export default {
     // Forward the request to the Durable Object
     const response = await stub.fetch(request);
 
-    // Add CORS headers to response
+    // For WebSocket upgrades, return as-is (don't modify)
+    if (upgradeHeader?.toLowerCase() === "websocket") {
+      return response;
+    }
+
+    // Add CORS headers to regular HTTP responses
     const newResponse = new Response(response.body, response);
     Object.entries(corsHeaders).forEach(([key, value]) => {
       newResponse.headers.set(key, value);

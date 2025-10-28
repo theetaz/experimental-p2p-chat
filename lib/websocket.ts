@@ -22,16 +22,23 @@ export function useWebSocket(currentUser: User | null, options?: UseWebSocketOpt
   } = useUserStore();
 
   const connect = useCallback(() => {
-    if (!currentUser || wsRef.current?.readyState === WebSocket.OPEN) {
+    if (!currentUser) {
+      return;
+    }
+
+    // Prevent multiple connections
+    if (wsRef.current && (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING)) {
+      console.log("⚠️ WebSocket already connecting or connected");
       return;
     }
 
     try {
+      console.log("🔌 Connecting to WebSocket...");
       const ws = new WebSocket(WS_BASE_URL);
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log("WebSocket connected");
+        console.log("✅ WebSocket connected successfully");
 
         // Send join message
         ws.send(
@@ -52,6 +59,7 @@ export function useWebSocket(currentUser: User | null, options?: UseWebSocketOpt
       ws.onmessage = (event) => {
         try {
           const message = JSON.parse(event.data);
+          console.log("📩 Received:", message.type);
           handleMessage(message);
         } catch (error) {
           console.error("Error parsing WebSocket message:", error);
@@ -59,18 +67,35 @@ export function useWebSocket(currentUser: User | null, options?: UseWebSocketOpt
       };
 
       ws.onerror = (error) => {
-        console.error("WebSocket error:", error);
+        // WebSocket errors are often benign and fire during normal connection flow
+        // Real connection issues will be caught by onclose event
+        // Suppress error logging to avoid confusion
       };
 
-      ws.onclose = () => {
-        console.log("WebSocket disconnected");
+      ws.onclose = (event) => {
+        console.log("🔌 WebSocket disconnected", event.code, event.reason);
         cleanup();
 
-        // Attempt to reconnect after 3 seconds
-        reconnectTimeoutRef.current = setTimeout(() => {
-          console.log("Attempting to reconnect...");
-          connect();
-        }, 3000);
+        // Only reconnect if:
+        // 1. Not a normal closure (code 1000)
+        // 2. Not a deliberate client closure (code 1001)
+        // 3. We still have a current user
+        // 4. The closed socket is still the current one
+        const shouldReconnect =
+          event.code !== 1000 &&
+          event.code !== 1001 &&
+          currentUser &&
+          wsRef.current === ws;
+
+        if (shouldReconnect) {
+          // Attempt to reconnect after 3 seconds
+          reconnectTimeoutRef.current = setTimeout(() => {
+            console.log("🔄 Attempting to reconnect...");
+            connect();
+          }, 3000);
+        } else {
+          wsRef.current = null;
+        }
       };
     } catch (error) {
       console.error("Error creating WebSocket:", error);
@@ -80,14 +105,17 @@ export function useWebSocket(currentUser: User | null, options?: UseWebSocketOpt
   const handleMessage = (message: any) => {
     switch (message.type) {
       case "initial-users":
+        console.log("👥 Initial users:", message.payload.length);
         setOnlineUsers(message.payload as OnlineUser[]);
         break;
 
       case "user-joined":
+        console.log("👋 User joined:", message.payload.username);
         addOnlineUser(message.payload as OnlineUser);
         break;
 
       case "user-left":
+        console.log("👋 User left:", message.payload.userId);
         removeOnlineUser(message.payload.userId);
         break;
 
@@ -97,19 +125,18 @@ export function useWebSocket(currentUser: User | null, options?: UseWebSocketOpt
 
       case "chat-request":
         addChatRequest(message.payload as ChatRequest);
-        // Show notification (you can add a toast notification here)
-        console.log("New chat request from:", message.payload.fromUser?.username);
+        console.log("💬 New chat request from:", message.payload.fromUser?.username);
         break;
 
       case "chat-accepted":
-        console.log("Chat accepted:", message.payload);
+        console.log("✅ Chat accepted:", message.payload);
         if (options?.onChatAccepted && message.payload.peerId) {
           options.onChatAccepted(message.payload.peerId);
         }
         break;
 
       case "chat-rejected":
-        console.log("Chat rejected:", message.payload);
+        console.log("❌ Chat rejected:", message.payload);
         break;
 
       case "offer":
@@ -121,7 +148,7 @@ export function useWebSocket(currentUser: User | null, options?: UseWebSocketOpt
         break;
 
       default:
-        console.log("Unknown message type:", message.type);
+        console.log("❓ Unknown message type:", message.type);
     }
   };
 
@@ -183,7 +210,7 @@ export function useWebSocket(currentUser: User | null, options?: UseWebSocketOpt
   }, [currentUser]);
 
   useEffect(() => {
-    if (currentUser) {
+    if (currentUser && !wsRef.current) {
       connect();
     }
 
@@ -195,7 +222,8 @@ export function useWebSocket(currentUser: User | null, options?: UseWebSocketOpt
       }
       disconnect();
     };
-  }, [currentUser, connect, disconnect]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser?.id]); // Only reconnect when user ID changes
 
   return {
     isConnected: wsRef.current?.readyState === WebSocket.OPEN,

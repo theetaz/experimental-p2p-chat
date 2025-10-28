@@ -70,7 +70,7 @@ export default function GlobePage() {
   return (
     <div className="flex h-screen bg-gray-950">
       {/* Sidebar */}
-      <div className="w-80 bg-gray-900 border-r border-gray-800 flex flex-col">
+      <div className="w-80 bg-gray-900 border-r border-gray-800 flex flex-col relative z-10">
         {/* User Profile */}
         <div className="p-4 border-b border-gray-800">
           <div className="flex items-center gap-3 mb-3">
@@ -124,7 +124,7 @@ export default function GlobePage() {
                 );
 
                 return (
-                  <Card key={request.id} className="bg-gray-800 border-gray-700">
+                  <Card key={request.id} className="bg-gray-800 border-gray-700 relative z-20">
                     <CardHeader className="p-3">
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-full overflow-hidden">
@@ -149,16 +149,28 @@ export default function GlobePage() {
                       <div className="flex gap-2">
                         <Button
                           size="sm"
-                          className="flex-1"
-                          onClick={() => handleChatResponse(request.id, true)}
+                          className="flex-1 cursor-pointer relative z-30"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            console.log("Accept clicked for request:", request.id);
+                            handleChatResponse(request.id, true);
+                          }}
+                          type="button"
                         >
                           Accept
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
-                          className="flex-1"
-                          onClick={() => handleChatResponse(request.id, false)}
+                          className="flex-1 cursor-pointer relative z-30"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            console.log("Decline clicked for request:", request.id);
+                            handleChatResponse(request.id, false);
+                          }}
+                          type="button"
                         >
                           Decline
                         </Button>
@@ -193,7 +205,7 @@ export default function GlobePage() {
       </div>
 
       {/* Globe View */}
-      <div className="flex-1 relative">
+      <div className="flex-1 relative z-0">
         <Globe3D users={onlineUsers} onPokeUser={handlePokeUser} />
       </div>
     </div>

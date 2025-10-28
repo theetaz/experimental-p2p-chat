@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useMemo } from "react";
-import { Canvas, useFrame, useLoader } from "@react-three/fiber";
+import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, Stars, Html } from "@react-three/drei";
 import * as THREE from "three";
 import { OnlineUser } from "@/lib/types";
@@ -99,8 +99,8 @@ interface Globe3DProps {
 
 export function Globe3D({ users, onPokeUser }: Globe3DProps) {
   return (
-    <div className="w-full h-full">
-      <Canvas camera={{ position: [0, 0, 5], fov: 50 }}>
+    <div className="w-full h-full pointer-events-auto">
+      <Canvas camera={{ position: [0, 0, 5], fov: 50 }} style={{ pointerEvents: 'auto' }}>
         <ambientLight intensity={0.5} />
         <pointLight position={[10, 10, 10]} intensity={1} />
         <pointLight position={[-10, -10, -10]} intensity={0.5} />
