@@ -98,10 +98,23 @@ function ChatPageContent() {
     // Mark as initialized
     hasInitialized.current = true;
 
-    // Start WebRTC connection
-    setTimeout(() => {
-      createOffer();
-    }, 100);
+    // Determine who should initiate the WebRTC connection
+    // The user with the lexicographically smaller ID becomes the initiator
+    // This prevents both users from creating offers simultaneously
+    const isInitiator = currentUser.id < (peerId || "");
+
+    console.log("🔄 WebRTC Role:", isInitiator ? "Initiator (will create offer)" : "Receiver (will wait for offer)");
+    console.log("🆔 My ID:", currentUser.id, "Peer ID:", peerId);
+
+    // Only the initiator creates an offer
+    if (isInitiator) {
+      setTimeout(() => {
+        console.log("📤 Creating WebRTC offer as initiator");
+        createOffer();
+      }, 100);
+    } else {
+      console.log("⏳ Waiting for WebRTC offer from peer");
+    }
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [peerId]);

@@ -98,6 +98,15 @@ export function useWebRTC({ localUserId, remoteUserId, onMessage, sendSignal }: 
       setIsConnecting(true);
       const pc = createPeerConnection();
 
+      // Check if we already have a remote description (offer from peer)
+      // If so, don't create another offer - this prevents race conditions
+      if (pc.signalingState !== "stable") {
+        console.warn("⚠️ Cannot create offer, signaling state is:", pc.signalingState);
+        console.warn("⚠️ Likely received offer from peer, skipping our offer");
+        setIsConnecting(false);
+        return;
+      }
+
       // Create data channel
       const dataChannel = pc.createDataChannel("chat");
       setupDataChannel(dataChannel);
@@ -121,13 +130,23 @@ export function useWebRTC({ localUserId, remoteUserId, onMessage, sendSignal }: 
   const handleOffer = useCallback(
     async (offer: RTCSessionDescriptionInit) => {
       try {
+        console.log("📨 Received offer from peer");
         setIsConnecting(true);
         const pc = createPeerConnection();
+
+        // If we're in the middle of creating our own offer, this is a race condition
+        // Always prioritize the received offer and abandon our own attempt
+        if (pc.signalingState === "have-local-offer") {
+          console.warn("⚠️ Offer collision detected! Rolling back our offer and accepting peer's offer");
+          // Rollback by setting remote description with type "rollback"
+          await pc.setLocalDescription({ type: "rollback" } as RTCSessionDescriptionInit);
+        }
 
         await pc.setRemoteDescription(new RTCSessionDescription(offer));
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
 
+        console.log("📤 Sending answer to peer");
         sendSignal({
           type: "answer",
           toUserId: remoteUserId,
