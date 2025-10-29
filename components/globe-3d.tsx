@@ -40,7 +40,13 @@ function UserMarker({ user, onPokeUser }: UserMarkerProps) {
       <Html distanceFactor={8} style={{ pointerEvents: "auto" }}>
         <div
           className="flex flex-col items-center gap-1 cursor-pointer transition-transform hover:scale-110"
-          onClick={() => onPokeUser(user.id)}
+          onClick={(e) => {
+            console.log("🖱️ Click event fired on user marker");
+            console.log("🆔 User ID:", user.id);
+            console.log("👤 Username:", user.username);
+            e.stopPropagation();
+            onPokeUser(user.id);
+          }}
         >
           <div className="w-8 h-8 rounded-full border-2 border-white shadow-lg overflow-hidden bg-white">
             <Image src={avatarUrl} alt={user.username} width={32} height={32} />

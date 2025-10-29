@@ -39,6 +39,7 @@ export default function GlobePage() {
   }, [setCurrentUser, router]);
 
   const handleLogout = () => {
+    console.log("🚪 Logging out - disconnecting WebSocket");
     disconnect();
     sessionStorage.removeItem("currentUser");
     clearSession();
@@ -47,12 +48,19 @@ export default function GlobePage() {
 
   const handlePokeUser = (userId: string) => {
     console.log("👆 Clicked on user:", userId);
+    console.log("🔍 Current user ID:", currentUser?.id);
+    console.log("🔍 Current user:", currentUser);
+    console.log("🔍 All online users:", onlineUsers.map(u => ({ id: u.id, username: u.username })));
+
     if (userId === currentUser?.id) {
       console.log("❌ Cannot poke yourself");
       return; // Can't poke yourself
     }
+
     console.log("📤 Sending chat request to:", userId);
+    console.log("📤 WebSocket connected:", sendChatRequest ? "Yes" : "No");
     sendChatRequest(userId);
+    console.log("✅ sendChatRequest called");
   };
 
   const handleChatResponse = (requestId: string, accepted: boolean) => {
