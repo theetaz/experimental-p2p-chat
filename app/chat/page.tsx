@@ -30,7 +30,7 @@ function ChatPageContent() {
 
   const peerUser = onlineUsers.find((u) => u.id === peerId);
 
-  const { sendMessage: sendWsMessage } = useWebSocket(currentUser, {
+  const { sendMessage: sendWsMessage, endChat } = useWebSocket(currentUser, {
     onSignalingMessage: (message) => {
       // Handle WebRTC signaling messages
       if (message.type === "offer" && handleOfferRef.current) {
@@ -40,6 +40,13 @@ function ChatPageContent() {
       } else if (message.type === "ice-candidate" && handleIceCandidateRef.current) {
         handleIceCandidateRef.current(message.payload.candidate);
       }
+    },
+    onChatEnded: (endedPeerId) => {
+      console.log("🔚 Chat ended by peer:", endedPeerId);
+      // Close the WebRTC connection
+      closeConnection();
+      // Redirect to globe page
+      router.push("/globe");
     },
   });
 
@@ -114,7 +121,14 @@ function ChatPageContent() {
   };
 
   const handleBack = () => {
+    console.log("🔙 User leaving chat");
+    // Notify the peer that we're ending the chat
+    if (peerId) {
+      endChat(peerId);
+    }
+    // Close the WebRTC connection
     closeConnection();
+    // Redirect to globe page
     router.push("/globe");
   };
 

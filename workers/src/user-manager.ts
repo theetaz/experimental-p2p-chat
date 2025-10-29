@@ -107,6 +107,9 @@ export class UserManager extends DurableObject {
         case "chat-response":
           await this.handleChatResponse(data.payload);
           break;
+        case "end-chat":
+          await this.handleEndChat(ws, data.payload);
+          break;
         case "offer":
         case "answer":
         case "ice-candidate":
@@ -284,6 +287,36 @@ export class UserManager extends DurableObject {
     setTimeout(() => {
       this.chatRequests.delete(payload.requestId);
     }, 60000);
+  }
+
+  private async handleEndChat(ws: WebSocket, payload: { peerId: string }) {
+    console.log("🔚 Handling end chat, notifying peer:", payload.peerId);
+
+    // Find the user ID who is ending the chat (sender)
+    let fromUserId: string | null = null;
+    for (const [userId, session] of this.sessions.entries()) {
+      if (session.webSocket === ws) {
+        fromUserId = userId;
+        break;
+      }
+    }
+
+    if (!fromUserId) {
+      console.error("❌ Could not find user ID for WebSocket");
+      return;
+    }
+
+    console.log("📤 User", fromUserId, "is ending chat with", payload.peerId);
+
+    // Notify the peer that the chat has ended
+    this.sendToUser(payload.peerId, {
+      type: "chat-ended",
+      payload: {
+        peerId: fromUserId,
+      },
+    });
+
+    console.log("✅ Chat end notification sent to peer");
   }
 
   private async handleSignaling(data: any) {

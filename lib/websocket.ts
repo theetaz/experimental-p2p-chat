@@ -6,6 +6,7 @@ import { WS_BASE_URL } from "./constants";
 interface UseWebSocketOptions {
   onChatAccepted?: (peerId: string) => void;
   onSignalingMessage?: (message: any) => void;
+  onChatEnded?: (peerId: string) => void;
 }
 
 // Global WebSocket instance shared across all components
@@ -28,6 +29,7 @@ export function useWebSocket(currentUser: User | null, options?: UseWebSocketOpt
     removeOnlineUser,
     updateOnlineUser,
     addChatRequest,
+    removeChatRequest,
   } = useUserStore();
 
   const connect = useCallback(() => {
@@ -186,6 +188,10 @@ export function useWebSocket(currentUser: User | null, options?: UseWebSocketOpt
 
       case "chat-accepted":
         console.log("✅ Chat accepted:", message.payload);
+        // Remove the chat request from the store
+        if (message.payload.requestId) {
+          removeChatRequest(message.payload.requestId);
+        }
         if (options?.onChatAccepted && message.payload.peerId) {
           options.onChatAccepted(message.payload.peerId);
         }
@@ -193,6 +199,10 @@ export function useWebSocket(currentUser: User | null, options?: UseWebSocketOpt
 
       case "chat-rejected":
         console.log("❌ Chat rejected:", message.payload);
+        // Remove the chat request from the store
+        if (message.payload.requestId) {
+          removeChatRequest(message.payload.requestId);
+        }
         break;
 
       case "offer":
@@ -203,10 +213,17 @@ export function useWebSocket(currentUser: User | null, options?: UseWebSocketOpt
         }
         break;
 
+      case "chat-ended":
+        console.log("🔚 Chat ended by peer:", message.payload.peerId);
+        if (options?.onChatEnded && message.payload.peerId) {
+          options.onChatEnded(message.payload.peerId);
+        }
+        break;
+
       default:
         console.log("❓ Unknown message type:", message.type);
     }
-  }, [setOnlineUsers, addOnlineUser, removeOnlineUser, updateOnlineUser, addChatRequest, options]);
+  }, [setOnlineUsers, addOnlineUser, removeOnlineUser, updateOnlineUser, addChatRequest, removeChatRequest, options]);
 
   const sendMessage = useCallback((message: any) => {
     console.log("📤 sendMessage called with:", message);
@@ -259,6 +276,19 @@ export function useWebSocket(currentUser: User | null, options?: UseWebSocketOpt
         payload: {
           requestId,
           accepted,
+        },
+      });
+    },
+    [sendMessage]
+  );
+
+  const endChat = useCallback(
+    (peerId: string) => {
+      console.log("🔚 Ending chat with peer:", peerId);
+      sendMessage({
+        type: "end-chat",
+        payload: {
+          peerId,
         },
       });
     },
@@ -348,6 +378,7 @@ export function useWebSocket(currentUser: User | null, options?: UseWebSocketOpt
     sendMessage,
     sendChatRequest,
     respondToChatRequest,
+    endChat,
     disconnect,
   };
 }

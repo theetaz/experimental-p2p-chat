@@ -15,7 +15,7 @@ import Image from "next/image";
 
 export default function GlobePage() {
   const router = useRouter();
-  const { currentUser, onlineUsers, chatRequests, setCurrentUser, clearSession } = useUserStore();
+  const { currentUser, onlineUsers, chatRequests, setCurrentUser, clearSession, removeChatRequest } = useUserStore();
   const [isClient, setIsClient] = useState(false);
 
   const { sendChatRequest, respondToChatRequest, disconnect } = useWebSocket(currentUser, {
@@ -58,12 +58,15 @@ export default function GlobePage() {
     }
 
     console.log("📤 Sending chat request to:", userId);
-    console.log("📤 WebSocket connected:", sendChatRequest ? "Yes" : "No");
     sendChatRequest(userId);
     console.log("✅ sendChatRequest called");
   };
 
   const handleChatResponse = (requestId: string, accepted: boolean) => {
+    console.log("📬 Responding to chat request:", requestId, "Accepted:", accepted);
+    // Remove the chat request immediately from local state
+    removeChatRequest(requestId);
+    // Send the response to the server
     respondToChatRequest(requestId, accepted);
   };
 
