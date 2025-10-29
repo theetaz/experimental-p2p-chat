@@ -101,10 +101,10 @@ function ChatPageContent() {
     // Determine who should initiate the WebRTC connection
     // The user with the lexicographically smaller ID becomes the initiator
     // This prevents both users from creating offers simultaneously
-    const isInitiator = currentUser.id < (peerId || "");
+    const isInitiator = currentUser && peerId ? currentUser.id < peerId : false;
 
     console.log("🔄 WebRTC Role:", isInitiator ? "Initiator (will create offer)" : "Receiver (will wait for offer)");
-    console.log("🆔 My ID:", currentUser.id, "Peer ID:", peerId);
+    console.log("🆔 My ID:", currentUser?.id, "Peer ID:", peerId);
 
     // Only the initiator creates an offer
     if (isInitiator) {
