@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useMemo } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, useFrame, useLoader } from "@react-three/fiber";
 import { OrbitControls, Stars, Html } from "@react-three/drei";
 import * as THREE from "three";
 import { OnlineUser } from "@/lib/types";
@@ -61,34 +61,38 @@ function UserMarker({ user, onPokeUser }: UserMarkerProps) {
 }
 
 function Globe({ users, onPokeUser }: { users: OnlineUser[]; onPokeUser: (userId: string) => void }) {
-  const globeRef = useRef<THREE.Mesh>(null);
+  const globeGroupRef = useRef<THREE.Group>(null);
+
+  // Load Earth texture
+  const earthTexture = useLoader(
+    THREE.TextureLoader,
+    'https://unpkg.com/three-globe@2.31.0/example/img/earth-blue-marble.jpg'
+  );
 
   useFrame(() => {
-    if (globeRef.current) {
-      globeRef.current.rotation.y += 0.001;
+    if (globeGroupRef.current) {
+      globeGroupRef.current.rotation.y += 0.001;
     }
   });
 
   return (
-    <group>
-      <mesh ref={globeRef}>
+    <group ref={globeGroupRef}>
+      <mesh>
         <sphereGeometry args={[2, 64, 64]} />
         <meshStandardMaterial
-          color="#1e293b"
-          roughness={0.7}
-          metalness={0.2}
-          emissive="#0f172a"
-          emissiveIntensity={0.1}
+          map={earthTexture}
+          roughness={0.8}
+          metalness={0.1}
         />
       </mesh>
-      {/* Grid lines for continents effect */}
+      {/* Atmosphere glow effect */}
       <mesh>
-        <sphereGeometry args={[2.01, 32, 32]} />
+        <sphereGeometry args={[2.02, 32, 32]} />
         <meshBasicMaterial
-          color="#334155"
-          wireframe
+          color="#4a9eff"
           transparent
-          opacity={0.2}
+          opacity={0.1}
+          side={THREE.BackSide}
         />
       </mesh>
       {users.map((user) => (
