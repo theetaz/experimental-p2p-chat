@@ -11,4 +11,4 @@ class_name = "UserManager"
 
 [[migrations]]
 tag = "v1"
-new_classes = ["UserManager"]
+new_sqlite_classes = ["UserManager"]
