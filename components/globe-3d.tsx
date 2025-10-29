@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, useMemo } from "react";
-import { Canvas, useFrame, useLoader } from "@react-three/fiber";
+import { useRef, useMemo, useState } from "react";
+import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
 import { OrbitControls, Stars, Html } from "@react-three/drei";
 import * as THREE from "three";
 import { OnlineUser } from "@/lib/types";
@@ -15,6 +15,8 @@ interface UserMarkerProps {
 
 function UserMarker({ user, onPokeUser }: UserMarkerProps) {
   const markerRef = useRef<THREE.Mesh>(null);
+  const groupRef = useRef<THREE.Group>(null);
+  const { camera } = useThree();
 
   // Convert lat/lon to 3D coordinates
   const position = useMemo(() => {
@@ -31,13 +33,36 @@ function UserMarker({ user, onPokeUser }: UserMarkerProps) {
 
   const avatarUrl = generateAvatarUrl(user.avatar.style, user.avatar.seed);
 
+  // Check if marker is visible from camera perspective
+  const [isVisible, setIsVisible] = useState(true);
+
+  useFrame(() => {
+    if (groupRef.current) {
+      const markerWorldPos = new THREE.Vector3();
+      groupRef.current.getWorldPosition(markerWorldPos);
+
+      // Get surface normal (direction from globe center to marker)
+      const surfaceNormal = markerWorldPos.clone().normalize();
+
+      // Get direction from marker to camera
+      const directionToCamera = camera.position.clone().sub(markerWorldPos).normalize();
+
+      // If surface normal points toward camera (dot product > 0), marker is visible
+      // If surface normal points away from camera (dot product < 0), marker is hidden
+      const dotProduct = surfaceNormal.dot(directionToCamera);
+
+      // Visible if dot product is positive (angle < 90 degrees)
+      setIsVisible(dotProduct > 0);
+    }
+  });
+
   return (
-    <group position={position}>
+    <group ref={groupRef} position={position} visible={isVisible}>
       <mesh ref={markerRef}>
         <sphereGeometry args={[0.05, 16, 16]} />
         <meshStandardMaterial color="#3b82f6" emissive="#3b82f6" emissiveIntensity={0.5} />
       </mesh>
-      <Html distanceFactor={8} style={{ pointerEvents: "auto" }}>
+      <Html distanceFactor={8} style={{ pointerEvents: "auto", opacity: isVisible ? 1 : 0 }}>
         <div
           className="flex flex-col items-center gap-1 cursor-pointer transition-transform hover:scale-110"
           onClick={(e) => {
