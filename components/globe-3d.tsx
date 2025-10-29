@@ -88,10 +88,20 @@ function UserMarker({ user, onPokeUser }: UserMarkerProps) {
 function Globe({ users, onPokeUser }: { users: OnlineUser[]; onPokeUser: (userId: string) => void }) {
   const globeGroupRef = useRef<THREE.Group>(null);
 
-  // Load Earth texture
+  // Load textures following globe.gl official examples
   const earthTexture = useLoader(
     THREE.TextureLoader,
     'https://unpkg.com/three-globe@2.31.0/example/img/earth-blue-marble.jpg'
+  );
+
+  const bumpTexture = useLoader(
+    THREE.TextureLoader,
+    'https://unpkg.com/three-globe@2.31.0/example/img/earth-topology.png'
+  );
+
+  const specularTexture = useLoader(
+    THREE.TextureLoader,
+    'https://unpkg.com/three-globe@2.31.0/example/img/earth-water.png'
   );
 
   useFrame(() => {
@@ -104,10 +114,13 @@ function Globe({ users, onPokeUser }: { users: OnlineUser[]; onPokeUser: (userId
     <group ref={globeGroupRef}>
       <mesh>
         <sphereGeometry args={[2, 64, 64]} />
-        <meshStandardMaterial
+        <meshPhongMaterial
           map={earthTexture}
-          roughness={0.8}
-          metalness={0.1}
+          bumpMap={bumpTexture}
+          bumpScale={0.05}
+          specularMap={specularTexture}
+          specular={new THREE.Color('grey')}
+          shininess={15}
         />
       </mesh>
       {/* Atmosphere glow effect */}
@@ -136,9 +149,8 @@ export function Globe3D({ users, onPokeUser }: Globe3DProps) {
   return (
     <div className="w-full h-full pointer-events-auto">
       <Canvas camera={{ position: [0, 0, 5], fov: 50 }} style={{ pointerEvents: 'auto' }}>
-        <ambientLight intensity={0.5} />
-        <pointLight position={[10, 10, 10]} intensity={1} />
-        <pointLight position={[-10, -10, -10]} intensity={0.5} />
+        <ambientLight intensity={0.6} />
+        <directionalLight position={[1, 1, 1]} intensity={0.8} />
         <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
         <Globe users={users} onPokeUser={onPokeUser} />
         <OrbitControls
