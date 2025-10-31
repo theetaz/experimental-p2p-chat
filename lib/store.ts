@@ -6,6 +6,7 @@ interface UserState {
   onlineUsers: OnlineUser[];
   chatRequests: ChatRequest[];
   activeChatUserId: string | null;
+  pendingOutgoingRequests: Set<string>; // Track user IDs we've sent requests to
 
   setCurrentUser: (user: User | null) => void;
   setOnlineUsers: (users: OnlineUser[]) => void;
@@ -15,15 +16,19 @@ interface UserState {
   addChatRequest: (request: ChatRequest) => void;
   updateChatRequest: (requestId: string, updates: Partial<ChatRequest>) => void;
   removeChatRequest: (requestId: string) => void;
+  addPendingOutgoingRequest: (userId: string) => void;
+  removePendingOutgoingRequest: (userId: string) => void;
+  hasPendingOutgoingRequest: (userId: string) => boolean;
   setActiveChatUserId: (userId: string | null) => void;
   clearSession: () => void;
 }
 
-export const useUserStore = create<UserState>((set) => ({
+export const useUserStore = create<UserState>((set, get) => ({
   currentUser: null,
   onlineUsers: [],
   chatRequests: [],
   activeChatUserId: null,
+  pendingOutgoingRequests: new Set<string>(),
 
   setCurrentUser: (user) => set({ currentUser: user }),
 
@@ -63,6 +68,24 @@ export const useUserStore = create<UserState>((set) => ({
       chatRequests: state.chatRequests.filter((r) => r.id !== requestId),
     })),
 
+  addPendingOutgoingRequest: (userId) =>
+    set((state) => {
+      const newSet = new Set(state.pendingOutgoingRequests);
+      newSet.add(userId);
+      return { pendingOutgoingRequests: newSet };
+    }),
+
+  removePendingOutgoingRequest: (userId) =>
+    set((state) => {
+      const newSet = new Set(state.pendingOutgoingRequests);
+      newSet.delete(userId);
+      return { pendingOutgoingRequests: newSet };
+    }),
+
+  hasPendingOutgoingRequest: (userId) => {
+    return get().pendingOutgoingRequests.has(userId);
+  },
+
   setActiveChatUserId: (userId) => set({ activeChatUserId: userId }),
 
   clearSession: () =>
@@ -71,5 +94,6 @@ export const useUserStore = create<UserState>((set) => ({
       onlineUsers: [],
       chatRequests: [],
       activeChatUserId: null,
+      pendingOutgoingRequests: new Set<string>(),
     }),
 }));

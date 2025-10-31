@@ -30,6 +30,8 @@ export function useWebSocket(currentUser: User | null, options?: UseWebSocketOpt
     updateOnlineUser,
     addChatRequest,
     removeChatRequest,
+    addPendingOutgoingRequest,
+    removePendingOutgoingRequest,
   } = useUserStore();
 
   const connect = useCallback(() => {
@@ -192,6 +194,10 @@ export function useWebSocket(currentUser: User | null, options?: UseWebSocketOpt
         if (message.payload.requestId) {
           removeChatRequest(message.payload.requestId);
         }
+        // Clear pending outgoing request for this user
+        if (message.payload.peerId) {
+          removePendingOutgoingRequest(message.payload.peerId);
+        }
         if (options?.onChatAccepted && message.payload.peerId) {
           options.onChatAccepted(message.payload.peerId);
         }
@@ -202,6 +208,10 @@ export function useWebSocket(currentUser: User | null, options?: UseWebSocketOpt
         // Remove the chat request from the store
         if (message.payload.requestId) {
           removeChatRequest(message.payload.requestId);
+        }
+        // Clear pending outgoing request for this user
+        if (message.payload.userId) {
+          removePendingOutgoingRequest(message.payload.userId);
         }
         break;
 
@@ -223,7 +233,7 @@ export function useWebSocket(currentUser: User | null, options?: UseWebSocketOpt
       default:
         console.log("❓ Unknown message type:", message.type);
     }
-  }, [setOnlineUsers, addOnlineUser, removeOnlineUser, updateOnlineUser, addChatRequest, removeChatRequest, options]);
+  }, [setOnlineUsers, addOnlineUser, removeOnlineUser, updateOnlineUser, addChatRequest, removeChatRequest, removePendingOutgoingRequest, options]);
 
   const sendMessage = useCallback((message: any) => {
     console.log("📤 sendMessage called with:", message);
@@ -253,6 +263,9 @@ export function useWebSocket(currentUser: User | null, options?: UseWebSocketOpt
       console.log("🔌 WebSocket state:", wsRef.current?.readyState);
       console.log("🔌 WebSocket OPEN constant:", WebSocket.OPEN);
 
+      // Track this as a pending outgoing request
+      addPendingOutgoingRequest(toUserId);
+
       const message = {
         type: "chat-request",
         payload: {
@@ -265,7 +278,7 @@ export function useWebSocket(currentUser: User | null, options?: UseWebSocketOpt
       sendMessage(message);
       console.log("✅ Message sent via sendMessage");
     },
-    [currentUser, sendMessage]
+    [currentUser, sendMessage, addPendingOutgoingRequest]
   );
 
   const respondToChatRequest = useCallback(

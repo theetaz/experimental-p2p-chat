@@ -206,10 +206,31 @@ export class UserManager extends DurableObject {
     }
   }
 
+  // Helper method to check if a pending request already exists between two users
+  private hasPendingRequestBetween(userId1: string, userId2: string): boolean {
+    for (const request of this.chatRequests.values()) {
+      if (request.status === "pending") {
+        if (
+          (request.fromUserId === userId1 && request.toUserId === userId2) ||
+          (request.fromUserId === userId2 && request.toUserId === userId1)
+        ) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   private async handleChatRequest(payload: { fromUserId: string; toUserId: string }) {
     console.log("📬 Handling chat request from", payload.fromUserId, "to", payload.toUserId);
     console.log("📊 Total sessions:", this.sessions.size);
     console.log("📋 Session IDs:", Array.from(this.sessions.keys()));
+
+    // Check if a pending request already exists between these users
+    if (this.hasPendingRequestBetween(payload.fromUserId, payload.toUserId)) {
+      console.log("⚠️ Duplicate request - pending request already exists between these users");
+      return;
+    }
 
     const requestId = crypto.randomUUID();
     const chatRequest: ChatRequest = {
@@ -253,6 +274,18 @@ export class UserManager extends DurableObject {
     chatRequest.status = payload.accepted ? "accepted" : "rejected";
 
     if (payload.accepted) {
+      // Clean up ALL pending requests between these two users immediately
+      // This prevents multiple chat-accepted messages if there were duplicate requests
+      const requestsToDelete: string[] = [];
+      for (const [reqId, req] of this.chatRequests.entries()) {
+        if (
+          (req.fromUserId === chatRequest.fromUserId && req.toUserId === chatRequest.toUserId) ||
+          (req.fromUserId === chatRequest.toUserId && req.toUserId === chatRequest.fromUserId)
+        ) {
+          requestsToDelete.push(reqId);
+        }
+      }
+
       // Notify both users that chat is accepted
       const toUser = this.sessions.get(chatRequest.toUserId)?.user;
 
@@ -272,6 +305,12 @@ export class UserManager extends DurableObject {
           peerId: chatRequest.fromUserId,
         },
       });
+
+      // Delete all requests between these users
+      for (const reqId of requestsToDelete) {
+        this.chatRequests.delete(reqId);
+        console.log("🧹 Cleaned up request:", reqId);
+      }
     } else {
       // Notify requester that chat was rejected
       this.sendToUser(chatRequest.fromUserId, {
@@ -281,12 +320,10 @@ export class UserManager extends DurableObject {
           userId: chatRequest.toUserId,
         },
       });
-    }
 
-    // Clean up request after 1 minute
-    setTimeout(() => {
+      // Clean up this specific rejected request
       this.chatRequests.delete(payload.requestId);
-    }, 60000);
+    }
   }
 
   private async handleEndChat(ws: WebSocket, payload: { peerId: string }) {

@@ -15,7 +15,7 @@ import Image from "next/image";
 
 export default function GlobePage() {
   const router = useRouter();
-  const { currentUser, onlineUsers, chatRequests, setCurrentUser, clearSession, removeChatRequest } = useUserStore();
+  const { currentUser, onlineUsers, chatRequests, setCurrentUser, clearSession, removeChatRequest, hasPendingOutgoingRequest } = useUserStore();
   const [isClient, setIsClient] = useState(false);
 
   const { sendChatRequest, respondToChatRequest, disconnect } = useWebSocket(currentUser, {
@@ -55,6 +55,12 @@ export default function GlobePage() {
     if (userId === currentUser?.id) {
       console.log("❌ Cannot poke yourself");
       return; // Can't poke yourself
+    }
+
+    // Check if we already have a pending request to this user
+    if (hasPendingOutgoingRequest(userId)) {
+      console.log("⚠️ Already have a pending chat request to this user");
+      return;
     }
 
     console.log("📤 Sending chat request to:", userId);
